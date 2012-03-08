@@ -1,5 +1,38 @@
-Current version: 0.1
-
 Currently supports converting axis-angle representations of rotations to/from quaternions, converting quaternion rotations to rotation matrices, and quaternion multiplication. Next release will support rotating vertices by quaternions and spherical interpolation (slerp). Packaged as a header-only file for ease of portable, and licensed under the 2-clause BSD license.
 
 While this library has been tested and seems to behave in a stable manner, it should be considered a preview version due to incompleteness. That is to say, it works for basic uses, but currently lacks many functions (and overloaded versions of existing functions) that somebody looking for a complete quaternion library might be looking for. Documentation is currently somewhat low, too, though this should be fixed by March 15 2012.
+
+The rotation matrices this library outputs are for a right-handed co-ordinate system, like OpenGL uses. If somebody wants to right a left-handed version for the matrices it'll be accepted to the master branch.
+
+To build your project with it, just include the quatrot.h file in your project. I'd suggest putting it in an include directory for your project, something like include/math/quatrot.h, but that's all up to you.
+
+I've tried to keep this agnostic, so that the only requirements are standard C++/C libraries. You can even use certain defines to make it not even require STL, if need be.
+
+It has one class, Quat. An empty constructor will load an identity multiplcation matrix, where as other options allow you to specify initial quaternion values. Unless you're directly copying from another quat, or know your quaternion math, setting these is probably a poor idea.
+
+A standard use of this library might look as follows:
+
+First, you have a variable that represents your model's rotation at all times, perhaps in global scope. Let's call it
+
+Quat quatRotation;
+
+Next, you want to rotate your model 45 degrees about the y-axis. To do this, you'll need to create a quaternion that represents this rotation:
+
+Quat tempQuat;
+tempQuat.FromAxisAngle(0,1,0,M_PI/4.f);
+
+Keep in mind that FromAxisAngle expects radians, and is right-handed. M_PI is a constant that equals pi.
+
+Now that we've converted to a quaternion how we want to rotate our existing quaternion, we multiply quatRotation and tempQuat:
+
+quatRotation *= tempQuat;
+
+Now we have our new, updated quatRotation. Please note that with quaternions, order matters during multiplication - operations are not communitive. All that remains is getting a rotation matrix representing this. Since QuatRot doesn't impose any 4x4 matrix type, leaving you to use your own preferred type, we'll get our matrix as a vector:
+
+vector<float> vRotMat;
+
+quatRotation.ToRotationMatrix(&vRotMat);
+
+vRotMat.clear();
+
+And now you have the rotation matrix, which you can happily multiply your matrix transformations by to get a final transformation matrix. It's worth noting that ToRotationMatrix will only add to a vector passed in - clearing the vector and retrieving the matrix from the vector are your responsibilities. There's an overloaded version that allows a 4x4 array of floats to be used instead, but I do not recommend using it.
