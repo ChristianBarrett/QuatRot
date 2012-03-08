@@ -1,0 +1,5 @@
+Current version: 0.1
+
+Currently supports converting axis-angle representations of rotations to/from quaternions, converting quaternion rotations to rotation matrices, and quaternion multiplication. Next release will support rotating vertices by quaternions and spherical interpolation (slerp). Packaged as a header-only file for ease of portable, and licensed under the 2-clause BSD license.
+
+While this library has been tested and seems to behave in a stable manner, it should be considered a preview version due to incompleteness. That is to say, it works for basic uses, but currently lacks many functions (and overloaded versions of existing functions) that somebody looking for a complete quaternion library might be looking for. Documentation is currently somewhat low, too, though this should be fixed by March 15 2012.
