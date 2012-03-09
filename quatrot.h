@@ -43,6 +43,12 @@ either expressed or implied, of the FreeBSD Project.
 *******************************************************************************
  */
 
+ //!A minimalist class to represent quaternions for use in rotations
+ /*!
+ This class is designed to represent and perform operations on quaternions for use in 3D rotations. When relevant, it
+ assumes that a right-handed co-ordinate system is being used
+ */
+
 
 #ifndef __QUAT_H__
 #define __QUAT_H__
@@ -68,25 +74,76 @@ class Quat
 {
 	float q[4]; //internal quaternion representation
 public:
-	//Constructors:
+	//!Default constructor
+	/*!
+		Loads the identity multiplication quaternion
+	*/
 	Quat(void){memset(q,0,sizeof(float)*4);q[3] = 1.f;}
 
+	//!Constructor for creating a quaternion from four floats representing another quaternion
+	/*!
+		Takes the floats x, y, z, and w in to create a quaternion. Not recommended unless you need
+		to pass from some other quaternion representation, or you really know your quaternions by heart.
+		\param x the x component of the quaternion, represented by a float
+		\param y the y component of the quaternion, represented by a float
+		\param z the z component of the quaternion, represented by a float
+		\param w the w component of the quaternion, represented by a float
+	*/
 	Quat(float x, float y, float z, float w){q[0]=x;q[1]=y;q[2]=z;q[3]=w;}
 
+	//!Constructor to create a quaternion from a pointer to four floats representing a quaternion
+	/*!
+		Takes a pointer to four floats.
+		\param newq the new quaternion
+	*/
 	Quat(const float *newq){memcpy(q,newq,sizeof(float)*4);}
 
+	//!Constructor to create a quaternion from another quaternion of this class
+	/*!
+		Creates a new instance from another instance of Quat
+		\param newq the new quaternion as a Quat
+	*/
 	Quat(const Quat &newq){memcpy(q,newq.q,sizeof(float)*4);}
-
+	//!Destructor
+	/*!
+		Desctructor for the Quat class. Nothing fancy.
+	*/
 	~Quat(){};
 
+	//!Getter for the x component of a quaternion
+	/*! 
+		Get the x component of a quaternion. Not recommended for regular use.
+	*/
 	float x() const {return q[0];}	
+	//!Getter for the y component of a quaternion
+	/*! 
+		Get the y component of a quaternion. Not recommended for regular use.
+	*/
 	float y() const {return q[1];}	
+	//!Getter for the z component of a quaternion
+	/*! 
+		Get the z component of a quaternion. Not recommended for regular use.
+	*/
 	float z() const {return q[2];}
+	//!Getter for the w component of a quaternion
+	/*! 
+		Get the w component of a quaternion. Not recommended for regular use.
+	*/
 	float w() const {return q[3];}
 
-	void Identity(void){q[0]=0.f;q[1]=0.f;q[2]=0.f;q[3]=1.f;} //Multiplication identity quaternion
+	//!Load the identity multiplication quaternion
+	/*!
+		Overwrites the current quaternion with the identity multiplication quaternion.
+		Run by the default constructor
+	*/
+	void Identity(void){q[0]=0.f;q[1]=0.f;q[2]=0.f;q[3]=1.f;} 
 
-	//Normalize the quaternion
+	//!Normalize the current quaternion
+	/*!
+		Normalizes the current quaternion.
+		Only runs if the quaternion is more than TOLERANCE away from being a unit quaternion,
+		in an attempt to avoid unnecessary uses of sqrt
+	*/
 	void Normalize(void)
 	{
 		float magSquared = q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
@@ -96,7 +153,15 @@ public:
 		q[0] /= mag;q[1] /= mag;q[2] /= mag;q[3] /= mag;
 	}
 
-
+	//!Build this quaternion from an axis angle representation 
+	/*!
+		Sets the current quaternion to an equivalent of the passed in axis angle. Assumes a right-handed
+		co-ordinate system, as in OpenGL. Angle should be in radians.
+		\param x The x-axis component of the axis angle as a float
+		\param y The y-axis component of the axis angle as a float
+		\param z The z-axis component of the axis angle as a float
+		\param angle The amount of rotation around the defined axis, in radians, as a float
+	*/
 	void FromAxisAngle(float x, float y, float z, float angle)
 	{
 		float newAngle = angle / 2.f;
@@ -112,7 +177,13 @@ public:
 	}
 
 #ifdef USE_STL_CONTAINER
-	//If you want a 4x4 matrix represented as a vector, for some reason...
+	//!Generate a rotation matrix from this quaternion, represented as an STL vector
+	/*!
+		Writes a vector<float> that represents a 4x4 rotation matrix describing the rotation,
+		assuming a right-handed co-ordinate system as in OpenGL. Will not clear the passed in vector - clearing this
+		is the user's responsibility.
+		\param mat A pointer to the vector you wish to add the matrix values to
+	*/
 	void ToRotationMatrix(vector <float> *mat)
 	{
 		float x2 = q[0] * q[0];
@@ -145,7 +216,17 @@ public:
 	}
 #endif
 
-	//Give the rotation matrix as a 4x4 array of floats
+	//!Generate a 4x4 float array from this quaternion
+	/*!
+		Writes the 4x4 rotation matrix describing the rotation,
+		assuming a right-handed co-ordinate system as in OpenGL.
+		This is not a preferred use - I highly recommend using the vector version instead.
+		WARNING: It is important you pass a uniform 4x4 array, and that arrlenght and arrwidth accurately
+		represent this array's dimensions. Failure to do so could cause severe problems.
+		\param mat The 4x4 array of floats to write to
+		\param arrlength The length of the array, represented by an int
+		\param arrwidth The width of the array, represented by an int
+	*/
 	void ToRotationMatrix(float mat[][4],int arrlength, int arrwidth)
 	{
 		
@@ -186,7 +267,10 @@ public:
 		mat[0][3] = 1;
 	}
 
-	//Operators
+	//!Assignment operator
+	/*!
+		\param rhs The quaternion you are copying
+	*/
 	inline Quat & operator=(const Quat & rhs)
 	{
 		q[0] = rhs.q[0];
@@ -196,18 +280,32 @@ public:
 		return *this;
 	}
 
+	//!Multiply two quaterions
+	/*!
+		Multiples two quaternions. Use to update rotations (existing rotation * delta rotation = new rotation)
+		Remember that quaternion multiplication is non-commutative
+		\param rhs The quaternion to multiply by
+	*/
 	Quat operator*(const Quat & rhs) const
 	{return Quat(rhs.q[3]*q[0] + rhs.q[0]*q[3] + rhs.q[1]*q[2] - rhs.q[2]*q[1],
 				 rhs.q[3]*q[1] + rhs.q[1]*q[3] + rhs.q[2]*q[0] - rhs.q[0]*q[2],
 				 rhs.q[3]*q[2] + rhs.q[2]*q[3] + rhs.q[0]*q[1] - rhs.q[1]*q[0],
 				 rhs.q[3]*q[3] - rhs.q[0]*q[0] - rhs.q[1]*q[1] - rhs.q[2]*q[2]);} 
+	//!Multiply current quaternion by another quaternion
+	/*!
+		Multiples two quaternions. Use to update rotations (existing rotation * delta rotation = new rotation)
+		Remember that quaternion multiplication is non-commutative
+		\param rhs The quaternion to multiply by
+	*/
 	Quat & operator*=(const Quat & rhs) 
 	{
 		*this = rhs * *this;
 		return *this;
 	}
 
+	//!Compare if two quaternions are equal
 	bool operator==(const Quat & rhs) const {return (q[0]==rhs.q[0] && q[1]==rhs.q[1] && q[2]==rhs.q[2] && q[3]==rhs.q[3]);}
+	//!Compare if two quaternions are not equal
 	bool operator!=(const Quat & rhs) const {return !((*this)==rhs);}
 
 	
